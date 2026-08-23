@@ -1,0 +1,298 @@
+// ─────────────────────────────────────────────────────────────
+// GrocGo Database Schema
+// PostgreSQL + Prisma ORM
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ROLES ──────────────────────────────────────────────────
+enum Role {
+  SUPER_ADMIN
+  SHOPKEEPER
+  EMPLOYEE
+}
+
+// ─── ORDER STATUS ───────────────────────────────────────────
+enum OrderStatus {
+  NEW
+  PREPARING
+  READY_FOR_PICKUP
+  COLLECTED
+  CANCELLED
+}
+
+// ─── PAYMENT STATUS ─────────────────────────────────────────
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  FREE
+}
+
+// ─── STORE ──────────────────────────────────────────────────
+model Store {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique // URL-friendly identifier
+  logo          String?  // URL to store logo
+  address       String
+  city          String
+  state         String
+  pincode       String
+  phone         String
+  email         String?
+  whatsappNumber String?  // Store's WhatsApp number
+  description   String?
+  businessHours String?  // JSON string: {"mon":"9-21","tue":"9-21"...}
+  isActive      Boolean  @default(true)
+  qrCode        String?  // Path/URL to generated QR code image
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  users         User[]
+  customers     Customer[]
+  products      Product[]
+  categories    Category[]
+  orders        Order[]
+  invoices      Invoice[]
+  whatsappLogs  WhatsAppLog[]
+  monthlyReminders MonthlyReminder[]
+  subscription  Subscription?
+
+  @@index([slug])
+  @@index([phone])
+}
+
+// ─── USER (Shopkeeper / Employee / Super Admin) ─────────────
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  phone         String
+  role          Role     @default(SHOPKEEPER)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  storeId       String?
+  store         Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  processedOrders Order[] @relation("ProcessedBy")
+
+  @@index([email])
+  @@index([storeId])
+}
+
+// ─── CUSTOMER ───────────────────────────────────────────────
+model Customer {
+  id            String   @id @default(uuid())
+  name          String
+  phone         String   // WhatsApp number
+  address       String?
+  notes         String?
+  totalOrders   Int      @default(0)
+  lastOrderAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders        Order[]
+  invoices      Invoice[]
+  monthlyReminders MonthlyReminder[]
+
+  @@unique([storeId, phone])
+  @@index([storeId])
+  @@index([phone])
+}
+
+// ─── PRODUCT CATEGORY ───────────────────────────────────────
+model Category {
+  id            String   @id @default(uuid())
+  name          String
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products      Product[]
+
+  @@unique([storeId, name])
+  @@index([storeId])
+}
+
+// ─── PRODUCT ────────────────────────────────────────────────
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  price         Float    // Price per unit
+  unit          String   @default("piece") // piece, packet, kg, g, litre, ml, dozen, custom
+  customUnit    String?  // If unit = "custom"
+  imageUrl      String?
+  sku           String?
+  stockQuantity Int?     // null = unlimited
+  isAvailable   Boolean  @default(true)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems    OrderItem[]
+  searchAliases String?  // comma-separated aliases for fuzzy matching
+
+  @@unique([storeId, sku])
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([name])
+}
+
+// ─── ORDER ──────────────────────────────────────────────────
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   String        // Human-readable: GRG-0001
+  status        OrderStatus   @default(NEW)
+  notes         String?       // Customer notes
+  adminNotes    String?       // Shopkeeper internal notes
+  totalAmount   Float         @default(0)
+  itemCount     Int           @default(0)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?       // cash, upi, card, etc.
+  pickupTime    DateTime?     // When customer picked up
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  processedById String?
+  processedBy   User?    @relation("ProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  invoice       Invoice?
+
+  @@unique([storeId, orderNumber])
+  @@index([storeId, status])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ─── ORDER ITEM ─────────────────────────────────────────────
+model OrderItem {
+  id            String   @id @default(uuid())
+  productName   String   // Snapshot at order time
+  quantity      Float
+  unit          String
+  unitPrice     Float    // Snapshot at order time
+  totalPrice    Float
+  createdAt     DateTime @default(now())
+
+  // Relations
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// ─── INVOICE ────────────────────────────────────────────────
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique // e.g. INV-GRG-0001
+  subtotal      Float
+  discount      Float    @default(0)
+  taxRate       Float    @default(0) // percentage
+  taxAmount     Float    @default(0)
+  total         Float
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([invoiceNumber])
+}
+
+// ─── WHATSAPP LOG ───────────────────────────────────────────
+model WhatsAppLog {
+  id            String   @id @default(uuid())
+  direction     String   // "outbound" | "inbound"
+  toFrom        String   // Phone number
+  messageType   String   // "template" | "text" | "image"
+  messageBody   String
+  status        String   @default("sent") // sent | delivered | read | failed
+  provider      String?  // Which WhatsApp provider was used
+  orderId       String?
+  createdAt     DateTime @default(now())
+
+  // Relations
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@index([orderId])
+}
+
+// ─── MONTHLY REMINDER ───────────────────────────────────────
+model MonthlyReminder {
+  id            String   @id @default(uuid())
+  lastSentAt    DateTime?
+  nextSendAt    DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  lastOrderId   String?
+
+  @@unique([customerId, storeId])
+  @@index([nextSendAt])
+}
+
+// ─── SUBSCRIPTION ───────────────────────────────────────────
+model Subscription {
+  id            String   @id @default(uuid())
+  plan          String   @default("free") // free, basic, pro, enterprise
+  startDate     DateTime @default(now())
+  endDate       DateTime?
+  isActive      Boolean  @default(true)
+  maxOrders     Int      @default(100) // per month
+  maxProducts   Int      @default(50)
+  maxCustomers  Int      @default(200)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  storeId       String   @unique
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}

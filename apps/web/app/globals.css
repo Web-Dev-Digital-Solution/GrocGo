@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  /* Better focus states for accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth transitions for interactive elements */
+  button, a, input, select, textarea {
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+
+  /* Prevent overscroll bounce on iOS */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    z-index: 9999;
+    background: white;
+  }
+
+  /* iOS viewport fix */
+  @supports (padding: env(safe-area-inset-top)) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+}
+
+@layer components {
+  /* Touch-friendly tap targets (min 44px) */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Mobile-first card */
+  .card-mobile {
+    @apply bg-white rounded-xl border shadow-sm;
+  }
+
+  /* Bottom sheet style for mobile modals */
+  .bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-2xl z-50;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Bottom sheet backdrop */
+  .bottom-sheet-backdrop {
+    @apply fixed inset-0 bg-black/40 z-40;
+    backdrop-filter: blur(2px);
+  }
+
+  /* Sticky bottom action bar */
+  .sticky-bottom-bar {
+    @apply fixed inset-x-0 bottom-0 bg-white border-t z-30;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Skeleton loading animation */
+  .skeleton {
+    @apply bg-gray-200 rounded-lg animate-pulse;
+  }
+
+  /* Haptic-like press effect */
+  .press-effect {
+    @apply active:scale-[0.97] active:opacity-90;
+    transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+
+  /* Gradient header */
+  .gradient-header {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-primary {
+    background-color: hsl(var(--primary));
+  }
+
+  .text-primary {
+    color: hsl(var(--primary));
+  }
+
+  .bg-destructive {
+    background-color: hsl(var(--destructive));
+  }
+
+  .text-destructive {
+    color: hsl(var(--destructive));
+  }
+
+  /* Hide scrollbar on mobile for horizontal scroll */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Prevent text selection on buttons/icons */
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Safe area padding helpers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* ─── BOTTOM SHEET SLIDE-UP ANIMATION ──────────────────── */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── SKELETON LOADING KEYFRAMES ──────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

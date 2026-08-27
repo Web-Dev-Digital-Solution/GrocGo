@@ -60,7 +60,7 @@ router.post('/upload', authenticate, requireStoreAccess, upload.single('image'),
 
       if (!itemName || itemName.length < 2) continue;
 
-      const matchedProduct = products.find((p) => {
+      const matchedProduct = products.find((p: typeof products[number]) => {
         const nameLower = p.name.toLowerCase();
         const itemLower = itemName.toLowerCase();
         return (

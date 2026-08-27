@@ -218,7 +218,7 @@ router.get('/:id/pdf', async (req: AuthRequest, res: Response) => {
 
     // Item rows
     doc.font('Helvetica').fontSize(8).fillColor(darkColor);
-    invoice.order.items.forEach((item, idx) => {
+    invoice.order.items.forEach((item: typeof invoice.order.items[number], idx: number) => {
       if (idx % 2 === 0) {
         doc.save().rect(marginLeft, Y - 1, contentWidth, 18).fill('#f8fafc').restore();
       }

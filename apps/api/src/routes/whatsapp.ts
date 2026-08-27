@@ -101,7 +101,7 @@ router.post('/send-order-confirmation', authenticate, requireStoreAccess, async 
     }
 
     const itemsList = order.items
-      .map((item) => `• ${item.productName} x${item.quantity} (${item.unit})`)
+      .map((item: typeof order.items[number]) => `• ${item.productName} x${item.quantity} (${item.unit})`)
       .join('\n');
 
     const message = `🟢 *GrocGo Order Confirmed*\n\n` +

@@ -21,7 +21,7 @@ publicRouter.get('/public/:storeId', async (req, res: Response) => {
     });
 
     // Group by category
-    const grouped = products.reduce((acc: any, product) => {
+    const grouped = products.reduce((acc: any, product: typeof products[number]) => {
       const catName = product.category?.name || 'Uncategorized';
       if (!acc[catName]) acc[catName] = [];
       acc[catName].push(product);

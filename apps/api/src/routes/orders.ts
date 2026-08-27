@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../index';
 import { authenticate, requireStoreAccess, AuthRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -60,7 +61,7 @@ publicRouter.post('/create', validate(publicCreateOrderSchema), async (req, res:
     const totalAmount = items.reduce((sum: number, item: any) => sum + item.quantity * item.unitPrice, 0);
 
     // Create order in transaction
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -302,7 +303,7 @@ router.post('/', validate(createOrderSchema), async (req: AuthRequest, res: Resp
     const itemCount = items.reduce((sum: number, item: number) => sum + item, 0);
 
     // Create order in transaction
-    const order = await prisma.$transaction(async (tx) => {
+    const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
@@ -427,7 +428,7 @@ router.put('/:id/items', validate(updateItemsSchema), async (req: AuthRequest, r
     const { items, adminNotes } = req.body;
     const totalAmount = items.reduce((sum: number, item: any) => sum + item.quantity * item.unitPrice, 0);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Delete existing items
       await tx.orderItem.deleteMany({ where: { orderId: order.id } });
 
@@ -501,7 +502,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Can only delete new or cancelled orders' });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.orderItem.deleteMany({ where: { orderId: order.id } });
       await tx.order.delete({ where: { id: order.id } });
     });

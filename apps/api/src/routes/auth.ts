@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../index';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -46,7 +47,7 @@ router.post('/register', validate(registerSchema), async (req, res: Response) =>
     const slug = generateSlug(storeName) + '-' + Date.now().toString(36);
 
     // Create store + user in transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const store = await tx.store.create({
         data: {
           name: storeName,

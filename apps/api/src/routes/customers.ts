@@ -38,7 +38,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     ]);
 
     res.json({
-      customers: customers.map((c) => ({
+      customers: customers.map((c: typeof customers[number]) => ({
         ...c,
         totalOrders: c._count.orders,
         lastOrderAt: c.orders[0]?.createdAt || c.lastOrderAt,

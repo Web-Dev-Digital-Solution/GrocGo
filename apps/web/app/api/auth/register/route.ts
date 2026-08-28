@@ -11,20 +11,20 @@ const schema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  phone: z.string().min(10),
+  phone: z.string().min(5),
   storeName: z.string().min(2),
   storeAddress: z.string().min(5),
   storeCity: z.string().min(2),
   storeState: z.string().min(2),
   storePincode: z.string().min(4),
-  storePhone: z.string().min(10),
+  storePhone: z.string().min(5),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = schema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: 'Validation failed' }, { status: 400 });
+    if (!parsed.success) return NextResponse.json({ error: 'Validation failed', details: parsed.error.errors }, { status: 400 });
 
     const { name, email, password, phone, storeName, storeAddress, storeCity, storeState, storePincode, storePhone } = parsed.data;
 

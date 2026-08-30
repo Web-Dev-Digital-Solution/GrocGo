@@ -94,8 +94,8 @@ function StandeeContent({
       </div>
 
       {/* QR Code */}
-      <div className="px-7 py-6 text-center">
-        <div className="inline-block p-4 bg-white rounded-[20px] relative" style={{ border: `3px solid ${t.qrBorder}`, boxShadow: t.qrShadow }}>
+      <div className="px-7 py-6 flex justify-center">
+        <div className="p-4 bg-white rounded-[20px] relative" style={{ border: `3px solid ${t.qrBorder}`, boxShadow: t.qrShadow }}>
           <div className="absolute -top-[3px] -left-[3px] w-5 h-5 border-t-4 border-l-4 rounded-tl-lg" style={{ borderColor: t.qrCorner }} />
           <div className="absolute -top-[3px] -right-[3px] w-5 h-5 border-t-4 border-r-4 rounded-tr-lg" style={{ borderColor: t.qrCorner }} />
           <div className="absolute -bottom-[3px] -left-[3px] w-5 h-5 border-b-4 border-l-4 rounded-bl-lg" style={{ borderColor: t.qrCorner }} />
@@ -117,8 +117,8 @@ function StandeeContent({
       </div>
 
       {/* Scan to Order */}
-      <div className="px-7 pb-4 text-center">
-        <div className="inline-flex items-center gap-2.5 text-white px-7 py-3 rounded-2xl" style={{ background: t.scanBtn, boxShadow: t.scanBtnShadow }}>
+      <div className="px-7 pb-4 flex flex-col items-center">
+        <div className="flex items-center gap-2.5 text-white px-7 py-3 rounded-2xl" style={{ background: t.scanBtn, boxShadow: t.scanBtnShadow }}>
           <ScanLine className="w-6 h-6" />
           <span className="text-[22px] font-extrabold tracking-wide">Scan to Order</span>
         </div>
@@ -129,27 +129,29 @@ function StandeeContent({
 
       {/* Instructions */}
       <div className="px-5 pb-5">
-        <div className="rounded-2xl px-5 py-4 flex items-center justify-center gap-3" style={{ background: t.instrBg }}>
-          {[
-            { icon: <Camera className="w-5 h-5" />, label: 'Open Camera\nor QR Scanner' },
-            { icon: <QrCode className="w-5 h-5" />, label: 'Scan\nQR Code' },
-            { icon: <ShoppingCart className="w-5 h-5" />, label: 'Start\nOrdering' },
-          ].map((step, i) => (
-            <div key={i} className="contents">
-              {i > 0 && <div className="font-bold text-lg" style={{ color: t.stepArrow }}>→</div>}
-              <div className="flex-1 text-center">
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-md text-white" style={{ background: t.stepBg }}>
-                  {step.icon}
+        <div className="rounded-2xl px-5 py-4" style={{ background: t.instrBg }}>
+          <div className="flex items-center justify-center gap-3">
+            {[
+              { icon: <Camera className="w-5 h-5" />, label: 'Open Camera\nor QR Scanner' },
+              { icon: <QrCode className="w-5 h-5" />, label: 'Scan\nQR Code' },
+              { icon: <ShoppingCart className="w-5 h-5" />, label: 'Start\nOrdering' },
+            ].map((step, i) => (
+              <div key={i} className="contents">
+                {i > 0 && <div className="font-bold text-lg" style={{ color: t.stepArrow }}>→</div>}
+                <div className="flex-1 text-center">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-md text-white" style={{ background: t.stepBg }}>
+                    {step.icon}
+                  </div>
+                  <p className="text-[11px] font-semibold text-gray-700 leading-tight whitespace-pre-line">{step.label}</p>
                 </div>
-                <p className="text-[11px] font-semibold text-gray-700 leading-tight whitespace-pre-line">{step.label}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="px-7 py-4 border-t border-gray-100 text-center">
+      <div className="px-7 py-4 border-t border-gray-100 flex justify-center">
         <p className="text-base font-bold text-gray-800">Thank You! Happy Shopping! 😊</p>
       </div>
 
@@ -331,7 +333,46 @@ export default function StandeePage() {
     if (!standeeRef.current) return;
     try {
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(standeeRef.current, { scale: 3, backgroundColor: null, useCORS: true } as any);
+
+      // Clone standee into a fixed-dimension offscreen container
+      // so html2canvas captures without flex/overflow distortions
+      const source = standeeRef.current;
+      const clone = source.cloneNode(true) as HTMLDivElement;
+
+      // Remove interactive buttons from clone
+      clone.querySelectorAll('button').forEach((btn) => btn.remove());
+
+      // Measure the actual rendered size
+      const rect = source.getBoundingClientRect();
+      const w = Math.ceil(rect.width);
+      const h = Math.ceil(rect.height);
+
+      // Create fixed-size offscreen wrapper
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `position:fixed;left:-9999px;top:0;width:${w}px;overflow:hidden;background:#fff;z-index:-1;`;
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      // Force clone to exact rendered dimensions
+      clone.style.width = w + 'px';
+      clone.style.height = h + 'px';
+      clone.style.borderRadius = '0';
+      clone.style.overflow = 'visible';
+      clone.style.margin = '0';
+      clone.style.boxShadow = 'none';
+
+      const canvas = await html2canvas(wrapper, {
+        width: w,
+        height: h,
+        scale: 3,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+        removeContainer: true,
+      } as any);
+
+      document.body.removeChild(wrapper);
+
       const link = document.createElement('a');
       link.download = `grocgo-standee-${theme}-${store?.slug || 'store'}.png`;
       link.href = canvas.toDataURL('image/png');

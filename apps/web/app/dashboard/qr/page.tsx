@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { qrAPI, storeAPI } from '@/lib/api';
 import GrocGoLogo from '@/components/Logo';
+import Link from 'next/link';
 import { 
   QrCode, Download, Share2, Copy, Check, DoorOpen, 
   CreditCard, Monitor, CreditCard as Card, FileText,
-  Lightbulb, Store
+  Lightbulb, Store, LayoutTemplate
 } from 'lucide-react';
 
 export default function QRPage() {
@@ -155,12 +156,19 @@ export default function QRPage() {
 
             {/* Action buttons */}
             <div className="px-5 pb-6 space-y-2.5">
-              <button
-                onClick={downloadQR}
+              <Link
+                href="/dashboard/qr/standee"
                 className="w-full bg-grocgo-600 text-white py-3.5 rounded-xl font-semibold text-sm hover:bg-grocgo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
-                <Download className="w-5 h-5" />
-                Download QR Code
+                <LayoutTemplate className="w-5 h-5" />
+                View Standee Design
+              </Link>
+              <button
+                onClick={downloadQR}
+                className="w-full border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download QR Only
               </button>
               <div className="flex gap-2.5">
                 <button
